@@ -25,6 +25,8 @@ public interface EventStore
 
 	<T extends Aggregate> Observable<T> publish(String address, T message);
 
+	<T extends Aggregate, R extends SourcedEvent> Observable<T> publish(String address, T message, R event);
+
 	<T extends DistributedEvent> MessageConsumer<String> consumer(Class<T> event, Handler<Message<String>> handler);
 
 	<T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass);

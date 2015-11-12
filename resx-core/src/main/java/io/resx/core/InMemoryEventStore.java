@@ -67,6 +67,11 @@ public class InMemoryEventStore implements EventStore
 		return Observable.just(message);
 	}
 
+	@Override
+	public <T extends Aggregate, R extends SourcedEvent> Observable<T> publish(String address, T message, R event) {
+		return publish(address, message);
+	}
+
 	private boolean hasSendError(Message<Object> messageAsyncResult) {
 		MultiMap headers = messageAsyncResult.headers();
 		return HEADER_TRUE.equals(headers.get(ERROR_HEADER));
