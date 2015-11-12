@@ -13,19 +13,23 @@ import io.vertx.rxjava.core.eventbus.EventBus;
 import io.vertx.rxjava.core.eventbus.Message;
 import io.vertx.rxjava.core.eventbus.MessageConsumer;
 import io.vertx.rxjava.ext.mongo.MongoClient;
+import lombok.extern.java.Log;
 import rx.Observable;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import static io.resx.core.Constants.ERROR_HEADER;
 import static io.resx.core.Constants.HEADER_TRUE;
 
-
+@Log
 public class MongoEventStore implements EventStore
 {
 	private final EventBus eventBus;
 	private final MongoClient mongoClient;
+	private final Map<String, Aggregate> aggregateCache = new HashMap<>();
 
 	public MongoEventStore(Vertx vertx, EventBus eventBus) {
 		this.eventBus = eventBus;
@@ -91,8 +95,7 @@ public class MongoEventStore implements EventStore
 	@Override public <T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass) {
 		try
 		{
-			T aggregate;
-			aggregate = aggregateClass.newInstance();
+			T aggregate = aggregateClass.newInstance();
 
 			JsonObject query = new JsonObject();
 			query.put("payload.id", id);
@@ -107,6 +110,9 @@ public class MongoEventStore implements EventStore
 								if(id.equals(o.getId())) aggregate.apply(o);
 							} catch (Exception ignored) { }
 						});
+				if(aggregate.getId() != null && !"".equals(aggregate.getId()))
+					aggregateCache.put(aggregate.getId(), aggregate);
+				log.info("Loaded aggregate " + aggregateClass.getName());
 				return Observable.just(aggregate);
 			}).doOnError(Observable::error);
 		}
@@ -145,5 +151,9 @@ public class MongoEventStore implements EventStore
 		document.put("clazz", event.getClazz().getCanonicalName());
 		document.put("payload", new JsonObject(event.getPayload()));
 		return mongoClient.insertObservable("events", document).flatMap(s -> Observable.just(event));
+	}
+
+	public Map<String, Aggregate> getAggregateCache() {
+		return aggregateCache;
 	}
 }
