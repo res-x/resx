@@ -46,6 +46,10 @@ public class MongoEventStore extends AbstractEventStore
 	}
 
 	@Override public <T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass) {
+		if(aggregateCache.containsKey(id)) {
+			//noinspection unchecked
+			return Observable.just((T)aggregateCache.get(id));
+		}
 		try
 		{
 			T aggregate = aggregateClass.newInstance();
