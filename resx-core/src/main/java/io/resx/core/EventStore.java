@@ -26,11 +26,11 @@ public interface EventStore
 
 	<T extends Aggregate> Observable<T> publish(String address, T message);
 
-	<T extends Aggregate, R extends SourcedEvent> Observable<T> publish(String address, T message, R event);
-
 	boolean hasSendError(Message<Object> messageAsyncResult);
 
 	<T extends DistributedEvent> MessageConsumer<String> consumer(Class<T> event, Handler<Message<String>> handler);
+
+	<T extends Aggregate, R extends SourcedEvent> Observable<T> load(String id, Class<T> aggregateClass, R event);
 
 	<T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass);
 

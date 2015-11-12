@@ -65,11 +65,6 @@ abstract public class AbstractEventStore implements EventStore {
 		return Observable.just(message);
 	}
 
-	@Override public <T extends Aggregate, R extends SourcedEvent> Observable<T> publish(String address, T message, R event) {
-		eventBus.publish(address, Json.encode(message));
-		return Observable.just(message);
-	}
-
 	@Override public boolean hasSendError(Message<Object> messageAsyncResult) {
 		MultiMap headers = messageAsyncResult.headers();
 		return HEADER_TRUE.equals(headers.get(ERROR_HEADER));
@@ -82,6 +77,10 @@ abstract public class AbstractEventStore implements EventStore {
 		}
 		catch (InstantiationException | IllegalAccessException ignored) { }
 		return null;
+	}
+
+	@Override public <T extends Aggregate, R extends SourcedEvent> Observable<T> load(String id, Class<T> aggregateClass, R event) {
+		return load(id, aggregateClass);
 	}
 
 	@Override

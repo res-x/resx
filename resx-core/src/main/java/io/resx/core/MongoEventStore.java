@@ -34,19 +34,18 @@ public class MongoEventStore extends AbstractEventStore
 		return Observable.just(message);
 	}
 
-	@Override public <T extends Aggregate, R extends SourcedEvent> Observable<T> publish(String address, T message, R event) {
-		if(aggregateCache.containsKey(event.getId())) message.apply(event);
-		aggregateCache.put(event.getId(), message);
-		eventBus.publish(address, Json.encode(message));
-		return Observable.just(message);
+	@Override public <T extends Aggregate, R extends SourcedEvent> Observable<T> load(String id, Class<T> aggregateClass, R event) {
+		if(aggregateCache.containsKey(id)) {
+			Aggregate aggregate = aggregateCache.get(id);
+			aggregate.apply(event);
+			//noinspection unchecked
+			return Observable.just((T) aggregate);
+		}
+
+		return load(id, aggregateClass);
 	}
 
 	@Override public <T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass) {
-		if(aggregateCache.containsKey(id)) {
-			//noinspection unchecked
-			return Observable.just((T)aggregateCache.get(id));
-		}
-
 		try
 		{
 			T aggregate = aggregateClass.newInstance();

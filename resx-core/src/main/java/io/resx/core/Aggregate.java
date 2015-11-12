@@ -14,7 +14,7 @@ public class Aggregate
 {
 	private String id;
 
-	public <T> void apply(T event) {
+	public <T> Aggregate apply(T event) {
 		final Method[] methods = getClass().getMethods();
 		for (Method method : methods)
 		{
@@ -27,7 +27,6 @@ public class Aggregate
 				try
 				{
 					method.invoke(this, event);
-					return;
 				}
 				catch (IllegalAccessException | InvocationTargetException e)
 				{
@@ -35,5 +34,6 @@ public class Aggregate
 				}
 			}
 		}
+		return this;
 	}
 }
