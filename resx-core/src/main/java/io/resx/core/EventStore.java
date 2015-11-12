@@ -10,6 +10,7 @@ import io.vertx.rxjava.core.eventbus.MessageConsumer;
 import rx.Observable;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public interface EventStore
 {
@@ -27,9 +28,13 @@ public interface EventStore
 
 	<T extends Aggregate, R extends SourcedEvent> Observable<T> publish(String address, T message, R event);
 
+	boolean hasSendError(Message<Object> messageAsyncResult);
+
 	<T extends DistributedEvent> MessageConsumer<String> consumer(Class<T> event, Handler<Message<String>> handler);
 
 	<T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass);
+
+	<T extends Aggregate> Consumer<PersistableEvent<? extends SourcedEvent>> applyEvent(String id, T aggregate);
 
 	Observable<List<PersistableEvent<? extends SourcedEvent>>> getPersistableEventList();
 

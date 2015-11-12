@@ -18,72 +18,12 @@ import java.util.*;
 import static io.resx.core.Constants.ERROR_HEADER;
 import static io.resx.core.Constants.HEADER_TRUE;
 
-public class InMemoryEventStore implements EventStore
+public class InMemoryEventStore extends AbstractEventStore
 {
-	private final EventBus eventBus;
 	private final Map<String, List<PersistableEvent<? extends SourcedEvent>>> eventList = new HashMap<>();
 
 	public InMemoryEventStore(EventBus eventBus) {
-		this.eventBus = eventBus;
-	}
-
-	@Override public <T extends SourcedEvent> Observable<T> publish(T message, Class<T> clazz) {
-		return publish(message.getAddress(), message, clazz);
-	}
-
-	@Override public <T extends DistributedEvent, R> Observable<R> publish(T message, Class<R> clazz) {
-		return publish(message.getAddress(), message, clazz);
-	}
-
-	@Override public <T extends DistributedEvent, R> Observable<R> publish(String address, T message, Class<R> clazz) {
-		return eventBus.sendObservable(address, Json.encode(message))
-				.flatMap(objectMessage -> {
-					String messageBody = (String) objectMessage.body();
-					if(!hasSendError(objectMessage)) {
-						//noinspection unchecked
-						R entity = clazz.equals(String.class)
-								? (R)messageBody
-								: Json.decodeValue(messageBody, clazz);
-						return Observable.just(entity);
-					}
-					return Observable.error(new RuntimeException(messageBody));
-				});
-	}
-
-	@Override public <T extends SourcedEvent> Observable<T> publish(String address, T message, Class<T> clazz) {
-		eventBus.publish(address, Json.encode(message));
-		PersistableEvent<T> tPersistableEvent = new PersistableEvent<>(clazz, Json.encode(message));
-		return insert(tPersistableEvent).flatMap(tPersistableEvent1 -> Observable.just(message));
-	}
-
-	@Override public <T extends FailedEvent> Observable<T> publish(String address, T message) {
-		eventBus.publish(address, Json.encode(message));
-		PersistableEvent<? extends FailedEvent> persistableEvent = new PersistableEvent<>(message.getClass(), Json.encode(message));
-		return insert(persistableEvent).flatMap(tPersistableEvent1 -> Observable.just(message));
-	}
-
-	@Override public <T extends Aggregate> Observable<T> publish(String address, T message) {
-		eventBus.publish(address, Json.encode(message));
-		return Observable.just(message);
-	}
-
-	@Override
-	public <T extends Aggregate, R extends SourcedEvent> Observable<T> publish(String address, T message, R event) {
-		return publish(address, message);
-	}
-
-	private boolean hasSendError(Message<Object> messageAsyncResult) {
-		MultiMap headers = messageAsyncResult.headers();
-		return HEADER_TRUE.equals(headers.get(ERROR_HEADER));
-	}
-
-	@Override public <T extends DistributedEvent> MessageConsumer<String> consumer(Class<T> event, Handler<Message<String>> handler) {
-		try
-		{
-			eventBus.consumer(event.newInstance().getAddress(), handler);
-		}
-		catch (InstantiationException | IllegalAccessException ignored) { }
-		return null;
+		super(eventBus);
 	}
 
 	@Override public <T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass) {
@@ -95,13 +35,7 @@ public class InMemoryEventStore implements EventStore
 			return getPersistableEventList(id).flatMap(persistableEvents -> {
 				persistableEvents.stream()
 						.filter(event -> !(FailedEvent.class.isAssignableFrom(event.getClazz())))
-						.forEach(event -> {
-							try {
-								final Class<? extends SourcedEvent> clazz = event.getClazz();
-								final SourcedEvent o = Json.decodeValue(event.getPayload(), clazz);
-								if(id.equals(o.getId())) aggregate.apply(o);
-							} catch (Exception ignored) { }
-						});
+						.forEach(applyEvent(id, aggregate));
 				return Observable.just(aggregate);
 			}).doOnError(Observable::error);
 		}
