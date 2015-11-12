@@ -15,22 +15,21 @@ import io.vertx.rxjava.ext.mongo.MongoClient;
 import rx.Observable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import static io.resx.core.Constants.ERROR_HEADER;
 import static io.resx.core.Constants.HEADER_TRUE;
 
-
-public class MongoEventStore implements EventStore
+public class InMemoryEventStore implements EventStore
 {
 	private final EventBus eventBus;
-	private final MongoClient mongoClient;
+	private final TreeMap<String, List<PersistableEvent<? extends SourcedEvent>>> treeMap = new TreeMap<>();
 
-	public MongoEventStore(Vertx vertx, EventBus eventBus) {
+	public InMemoryEventStore(EventBus eventBus) {
 		this.eventBus = eventBus;
-		final JsonObject config = new JsonObject();
-		String mongoPort = System.getenv("MONGOPORT");
-		mongoClient = MongoClient.createShared(vertx, config, "mongodb://localhost:3001");
 	}
 
 	@Override public <T extends SourcedEvent> Observable<T> publish(T message, Class<T> clazz) {
@@ -92,10 +91,7 @@ public class MongoEventStore implements EventStore
 			T aggregate;
 			aggregate = aggregateClass.newInstance();
 
-			JsonObject query = new JsonObject();
-			query.put("payload.id", id);
-
-			return getPersistableEventList(query).flatMap(persistableEvents -> {
+			return getPersistableEventList(id).flatMap(persistableEvents -> {
 				persistableEvents.stream()
 						.filter(event -> !(FailedEvent.class.isAssignableFrom(event.getClazz())))
 						.forEach(event -> {
@@ -113,35 +109,35 @@ public class MongoEventStore implements EventStore
 
 	@Override public Observable<List<PersistableEvent<? extends SourcedEvent>>> getPersistableEventList()
 	{
-		return getPersistableEventList(new JsonObject());
+		return getPersistableEventList(null);
 	}
 
-	public Observable<List<PersistableEvent<? extends SourcedEvent>>> getPersistableEventList(JsonObject query)
+	public Observable<List<PersistableEvent<? extends SourcedEvent>>> getPersistableEventList(String id)
 	{
-		return mongoClient.findObservable("events", query)
-				.map(jsonObjects -> {
-					List<PersistableEvent<? extends SourcedEvent>> events = new ArrayList<>();
-					for (JsonObject event : jsonObjects) {
-						try {
-							events.add(makePersistableEventFromJson(event));
-						} catch (ClassNotFoundException ignored) { }
-					}
-					return events;
-				});
-	}
+		List<PersistableEvent<? extends SourcedEvent>> eventList = new ArrayList<>();
+		if(id == null) {
+			treeMap.values().forEach(eventList::addAll);
+		}
+		else {
+			List<PersistableEvent<? extends SourcedEvent>> persistableEvents = treeMap.get(id);
+			if(persistableEvents == null) persistableEvents = new ArrayList<>();
+			eventList.addAll(persistableEvents);
+		}
 
-	private PersistableEvent<? extends SourcedEvent> makePersistableEventFromJson(JsonObject event) throws ClassNotFoundException {
-		//noinspection unchecked
-		Class<? extends SourcedEvent> clazz
-				= (Class<? extends SourcedEvent>) Class.forName(event.getString("clazz"));
-		return new PersistableEvent<>(clazz, event.getJsonObject("payload").encode());
+		return Observable.just(eventList);
 	}
 
 	public <T extends PersistableEvent<? extends SourcedEvent>> Observable<T> insert(T event) {
-		JsonObject document = new JsonObject();
-		document.put("_id", event.getId());
-		document.put("clazz", event.getClazz().getCanonicalName());
-		document.put("payload", new JsonObject(event.getPayload()));
-		return mongoClient.insertObservable("events", document).flatMap(s -> Observable.just(event));
+		final JsonObject jsonObject = new JsonObject(event.getPayload());
+		final String id = jsonObject.getString("id");
+		if(treeMap.containsKey(id)) {
+			treeMap.get(id).add(event);
+		}
+		else {
+			final List<PersistableEvent<? extends SourcedEvent>> events = new ArrayList<>();
+			events.add(event);
+			treeMap.put(id, events);
+		}
+		return Observable.just(event);
 	}
 }
