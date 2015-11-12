@@ -11,10 +11,11 @@ import io.vertx.rxjava.core.MultiMap;
 import io.vertx.rxjava.core.Vertx;
 import io.vertx.rxjava.core.eventbus.EventBus;
 import io.vertx.rxjava.core.eventbus.Message;
+import io.vertx.rxjava.core.eventbus.MessageConsumer;
 import io.vertx.rxjava.ext.mongo.MongoClient;
 import rx.Observable;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import static io.resx.core.Constants.ERROR_HEADER;
@@ -78,12 +79,13 @@ public class MongoEventStore implements EventStore
 		return HEADER_TRUE.equals(headers.get(ERROR_HEADER));
 	}
 
-	@Override public <T extends DistributedEvent> void consumer(Class<T> event, Handler<Message<String>> handler) {
+	@Override public <T extends DistributedEvent> MessageConsumer<String> consumer(Class<T> event, Handler<Message<String>> handler) {
 		try
 		{
-			eventBus.consumer(event.newInstance().getAddress(), handler);
+			return eventBus.consumer(event.newInstance().getAddress(), handler);
 		}
 		catch (InstantiationException | IllegalAccessException ignored) { }
+		return null;
 	}
 
 	@Override public <T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass) {
@@ -120,7 +122,7 @@ public class MongoEventStore implements EventStore
 	{
 		return mongoClient.findObservable("events", query)
 				.map(jsonObjects -> {
-					List<PersistableEvent<? extends SourcedEvent>> events = new ArrayList<>();
+					List<PersistableEvent<? extends SourcedEvent>> events = new LinkedList<>();
 					for (JsonObject event : jsonObjects) {
 						try {
 							events.add(makePersistableEventFromJson(event));

@@ -3,7 +3,6 @@ package io.resx.core;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.java.Log;
-import org.apache.commons.beanutils.MethodUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -19,15 +18,15 @@ public class Aggregate
 		final Method[] methods = getClass().getMethods();
 		for (Method method : methods)
 		{
-			final Method matchingAccessibleMethod = MethodUtils
-					.getMatchingAccessibleMethod(this.getClass(), method.getName(), new Class<?>[] { event.getClass() });
+			final Class<?>[] parameterTypes = method.getParameterTypes();
 
-			if(matchingAccessibleMethod != null
-					&& !matchingAccessibleMethod.getParameterTypes()[0].equals(Object.class)
-					&& !"apply".equals(method.getName())) {
+			if(!method.getName().equals("apply")
+					&& parameterTypes.length == 1
+					&& parameterTypes[0].equals(event.getClass()))
+			{
 				try
 				{
-					matchingAccessibleMethod.invoke(this, event);
+					method.invoke(this, event);
 					return;
 				}
 				catch (IllegalAccessException | InvocationTargetException e)

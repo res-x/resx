@@ -8,17 +8,12 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.rxjava.core.MultiMap;
-import io.vertx.rxjava.core.Vertx;
 import io.vertx.rxjava.core.eventbus.EventBus;
 import io.vertx.rxjava.core.eventbus.Message;
-import io.vertx.rxjava.ext.mongo.MongoClient;
+import io.vertx.rxjava.core.eventbus.MessageConsumer;
 import rx.Observable;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
+import java.util.*;
 
 import static io.resx.core.Constants.ERROR_HEADER;
 import static io.resx.core.Constants.HEADER_TRUE;
@@ -26,7 +21,7 @@ import static io.resx.core.Constants.HEADER_TRUE;
 public class InMemoryEventStore implements EventStore
 {
 	private final EventBus eventBus;
-	private final TreeMap<String, List<PersistableEvent<? extends SourcedEvent>>> treeMap = new TreeMap<>();
+	private final Map<String, List<PersistableEvent<? extends SourcedEvent>>> eventList = new HashMap<>();
 
 	public InMemoryEventStore(EventBus eventBus) {
 		this.eventBus = eventBus;
@@ -77,12 +72,13 @@ public class InMemoryEventStore implements EventStore
 		return HEADER_TRUE.equals(headers.get(ERROR_HEADER));
 	}
 
-	@Override public <T extends DistributedEvent> void consumer(Class<T> event, Handler<Message<String>> handler) {
+	@Override public <T extends DistributedEvent> MessageConsumer<String> consumer(Class<T> event, Handler<Message<String>> handler) {
 		try
 		{
 			eventBus.consumer(event.newInstance().getAddress(), handler);
 		}
 		catch (InstantiationException | IllegalAccessException ignored) { }
+		return null;
 	}
 
 	@Override public <T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass) {
@@ -114,13 +110,13 @@ public class InMemoryEventStore implements EventStore
 
 	public Observable<List<PersistableEvent<? extends SourcedEvent>>> getPersistableEventList(String id)
 	{
-		List<PersistableEvent<? extends SourcedEvent>> eventList = new ArrayList<>();
+		List<PersistableEvent<? extends SourcedEvent>> eventList = new LinkedList<>();
 		if(id == null) {
-			treeMap.values().forEach(eventList::addAll);
+			this.eventList.values().forEach(eventList::addAll);
 		}
 		else {
-			List<PersistableEvent<? extends SourcedEvent>> persistableEvents = treeMap.get(id);
-			if(persistableEvents == null) persistableEvents = new ArrayList<>();
+			List<PersistableEvent<? extends SourcedEvent>> persistableEvents = this.eventList.get(id);
+			if(persistableEvents == null) persistableEvents = new LinkedList<>();
 			eventList.addAll(persistableEvents);
 		}
 
@@ -130,13 +126,13 @@ public class InMemoryEventStore implements EventStore
 	public <T extends PersistableEvent<? extends SourcedEvent>> Observable<T> insert(T event) {
 		final JsonObject jsonObject = new JsonObject(event.getPayload());
 		final String id = jsonObject.getString("id");
-		if(treeMap.containsKey(id)) {
-			treeMap.get(id).add(event);
+		if(eventList.containsKey(id)) {
+			eventList.get(id).add(event);
 		}
 		else {
-			final List<PersistableEvent<? extends SourcedEvent>> events = new ArrayList<>();
+			final List<PersistableEvent<? extends SourcedEvent>> events = new LinkedList<>();
 			events.add(event);
-			treeMap.put(id, events);
+			eventList.put(id, events);
 		}
 		return Observable.just(event);
 	}

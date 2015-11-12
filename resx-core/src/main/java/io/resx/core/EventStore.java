@@ -6,6 +6,7 @@ import io.resx.core.event.PersistableEvent;
 import io.resx.core.event.SourcedEvent;
 import io.vertx.core.Handler;
 import io.vertx.rxjava.core.eventbus.Message;
+import io.vertx.rxjava.core.eventbus.MessageConsumer;
 import rx.Observable;
 
 import java.util.List;
@@ -24,7 +25,7 @@ public interface EventStore
 
 	<T extends Aggregate> Observable<T> publish(String address, T message);
 
-	<T extends DistributedEvent> void consumer(Class<T> event, Handler<Message<String>> handler);
+	<T extends DistributedEvent> MessageConsumer<String> consumer(Class<T> event, Handler<Message<String>> handler);
 
 	<T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass);
 
