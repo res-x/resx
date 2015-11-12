@@ -1,22 +1,16 @@
 package io.resx.core;
 
-import io.resx.core.event.DistributedEvent;
 import io.resx.core.event.FailedEvent;
 import io.resx.core.event.PersistableEvent;
 import io.resx.core.event.SourcedEvent;
-import io.vertx.core.Handler;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
-import io.vertx.rxjava.core.MultiMap;
 import io.vertx.rxjava.core.eventbus.EventBus;
-import io.vertx.rxjava.core.eventbus.Message;
-import io.vertx.rxjava.core.eventbus.MessageConsumer;
 import rx.Observable;
 
-import java.util.*;
-
-import static io.resx.core.Constants.ERROR_HEADER;
-import static io.resx.core.Constants.HEADER_TRUE;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 public class InMemoryEventStore extends AbstractEventStore
 {
