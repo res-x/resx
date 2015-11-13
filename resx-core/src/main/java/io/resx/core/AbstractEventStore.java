@@ -66,7 +66,11 @@ abstract public class AbstractEventStore implements EventStore {
 	}
 
 	@Override public <T extends Aggregate> Observable<T> publish(String address, T message) {
-		aggregateCache.put(message.getId(), message);
+		return publish(address, message, message.getId());
+	}
+
+	@Override public <T extends Aggregate> Observable<T> publish(String address, T message, String cacheKey) {
+		aggregateCache.put(cacheKey, message);
 		eventBus.publish(address, Json.encode(message));
 		return Observable.just(message);
 	}
@@ -100,12 +104,12 @@ abstract public class AbstractEventStore implements EventStore {
 	public abstract <T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass);
 
 	@Override
-	public <T extends Aggregate> Consumer<PersistableEvent<? extends SourcedEvent>> applyEvent(String id, Observable<T> aggregate) {
+	public <T extends Aggregate> Consumer<PersistableEvent<? extends SourcedEvent>> applyEvent(T aggregate) {
 		return event -> {
 			try {
 				final Class<? extends SourcedEvent> clazz = event.getClazz();
 				final SourcedEvent o = Json.decodeValue(event.getPayload(), clazz);
-				aggregate.subscribe(aggregate1 -> aggregate1.apply(o));
+				aggregate.apply(o);
 			} catch (Exception ignored) { }
 		};
 	}

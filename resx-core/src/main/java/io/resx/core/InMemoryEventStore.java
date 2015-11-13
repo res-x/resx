@@ -20,12 +20,12 @@ public class InMemoryEventStore extends AbstractEventStore
 	}
 
 	@Override public <T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass) {
-		Observable<T> aggregate = makeNewAggregateOf(aggregateClass);
-		return getPersistableEventList(id)
+		Observable<T> newAggregate = makeNewAggregateOf(aggregateClass);
+		return newAggregate.flatMap(aggregate -> getPersistableEventList(id)
 				.flatMap(persistableEvents -> {
-					persistableEvents.stream().forEach(applyEvent(id, aggregate));
-					return aggregate.doOnNext(t -> aggregateCache.put(t.getId(), t));
-				}).doOnError(Observable::error);
+					persistableEvents.stream().forEach(applyEvent(aggregate));
+					return Observable.just(aggregate);
+				})).doOnError(Observable::error);
 	}
 
 	@Override public Observable<List<PersistableEvent<? extends SourcedEvent>>> getPersistableEventList()

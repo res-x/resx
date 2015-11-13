@@ -9,6 +9,9 @@ import io.vertx.rxjava.ext.mongo.MongoClient;
 import lombok.extern.java.Log;
 import rx.Observable;
 
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,7 +32,7 @@ public class MongoEventStore extends AbstractEventStore
 			return Observable.just((T)aggregateCache.get(id));
 		}
 
-		return loadFromMongo(id, aggregateClass, new JsonObject().put("payload.id", id));
+		return loadFromMongo(aggregateClass, new JsonObject().put("payload.id", id));
 	}
 
 	public <T extends Aggregate> Observable<T> load(JsonObject query, Class<T> aggregateClass) {
@@ -39,16 +42,28 @@ public class MongoEventStore extends AbstractEventStore
 			return Observable.just((T)aggregateCache.get(id));
 		}
 
-		return loadFromMongo(id, aggregateClass, query);
+		return loadFromMongo(aggregateClass, query);
 	}
 
-	private <T extends Aggregate> Observable<T> loadFromMongo(String id, Class<T> aggregateClass, JsonObject query) {
-		Observable<T> aggregate = makeNewAggregateOf(aggregateClass);
-		return getPersistableEventList(query)
-				.flatMap(persistableEvents -> {
-					persistableEvents.stream().forEach(applyEvent(id, aggregate));
-					return aggregate.doOnNext(t -> aggregateCache.put(t.getId(), t));
-				}).doOnError(Observable::error);
+	public <T extends Aggregate, R extends SourcedEvent> Observable<T> load(JsonObject query, Class<T> aggregateClass, R event) {
+		String id = query.getString("payload.id");
+		if(aggregateCache.containsKey(id)) {
+			Aggregate aggregate = aggregateCache.get(id);
+			aggregate.apply(event);
+			//noinspection unchecked
+			return Observable.just((T) aggregate);
+		}
+
+		return loadFromMongo(aggregateClass, query);
+	}
+
+	private <T extends Aggregate> Observable<T> loadFromMongo(Class<T> aggregateClass, JsonObject query) {
+		Observable<T> newAggregate = makeNewAggregateOf(aggregateClass);
+		return newAggregate.flatMap(aggregate -> getPersistableEventList(query)
+				.map(persistableEvents -> {
+					persistableEvents.stream().forEach(applyEvent(aggregate));
+					return aggregate;
+				}));
 	}
 
 	@Override public Observable<List<PersistableEvent<? extends SourcedEvent>>> getPersistableEventList()
@@ -67,6 +82,7 @@ public class MongoEventStore extends AbstractEventStore
 	public <T extends PersistableEvent<? extends SourcedEvent>> Observable<T> insert(T event) {
 		JsonObject document = new JsonObject();
 		document.put("_id", event.getId());
+		document.put("dateCreated", ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
 		document.put("clazz", event.getClazz().getCanonicalName());
 		document.put("payload", new JsonObject(event.getPayload()));
 		return mongoClient.insertObservable("events", document).flatMap(s -> Observable.just(event));

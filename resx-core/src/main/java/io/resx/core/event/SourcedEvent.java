@@ -13,12 +13,12 @@ import java.util.Date;
 public class SourcedEvent extends DistributedEvent
 {
 	private String id;
-	private final Date _dateCreated;
+	private final Date dateCreated;
 
 	public SourcedEvent(String address, String id)
 	{
 		super(address);
 		this.id = id;
-		_dateCreated = new Date();
+		dateCreated = new Date();
 	}
 }

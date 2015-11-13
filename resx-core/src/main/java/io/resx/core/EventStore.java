@@ -26,6 +26,8 @@ public interface EventStore
 
 	<T extends Aggregate> Observable<T> publish(String address, T message);
 
+	<T extends Aggregate> Observable<T> publish(String address, T message, String cacheKey);
+
 	boolean hasSendError(Message<Object> messageAsyncResult);
 
 	<T extends DistributedEvent> MessageConsumer<String> consumer(Class<T> event, Handler<Message<String>> handler);
@@ -34,7 +36,7 @@ public interface EventStore
 
 	<T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass);
 
-	<T extends Aggregate> Consumer<PersistableEvent<? extends SourcedEvent>> applyEvent(String id, Observable<T> aggregate);
+	<T extends Aggregate> Consumer<PersistableEvent<? extends SourcedEvent>> applyEvent(T aggregate);
 
 	<T extends Aggregate> Observable<T> makeNewAggregateOf(Class<T> aggregateClass);
 
