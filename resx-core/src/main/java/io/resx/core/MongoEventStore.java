@@ -29,10 +29,20 @@ public class MongoEventStore extends AbstractEventStore
 			return Observable.just((T)aggregateCache.get(id));
 		}
 
-		return getPersistableEventList(id, aggregateClass, new JsonObject().put("payload.id", id));
+		return loadFromMongo(id, aggregateClass, new JsonObject().put("payload.id", id));
 	}
 
-	private <T extends Aggregate> Observable<T> getPersistableEventList(String id, Class<T> aggregateClass, JsonObject query) {
+	public <T extends Aggregate> Observable<T> load(JsonObject query, Class<T> aggregateClass) {
+		String id = query.getString("payload.id");
+		if(id != null && aggregateCache.containsKey(id)) {
+			//noinspection unchecked
+			return Observable.just((T)aggregateCache.get(id));
+		}
+
+		return loadFromMongo(id, aggregateClass, query);
+	}
+
+	private <T extends Aggregate> Observable<T> loadFromMongo(String id, Class<T> aggregateClass, JsonObject query) {
 		Observable<T> aggregate = makeNewAggregateOf(aggregateClass);
 		return getPersistableEventList(query)
 				.flatMap(persistableEvents -> {
