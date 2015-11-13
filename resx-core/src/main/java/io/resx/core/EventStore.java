@@ -34,7 +34,9 @@ public interface EventStore
 
 	<T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass);
 
-	<T extends Aggregate> Consumer<PersistableEvent<? extends SourcedEvent>> applyEvent(String id, T aggregate);
+	<T extends Aggregate> Consumer<PersistableEvent<? extends SourcedEvent>> applyEvent(String id, Observable<T> aggregate);
+
+	<T extends Aggregate> Observable<T> makeNewAggregateOf(Class<T> aggregateClass);
 
 	Observable<List<PersistableEvent<? extends SourcedEvent>>> getPersistableEventList();
 

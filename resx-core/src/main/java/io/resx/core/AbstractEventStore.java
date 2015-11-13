@@ -10,16 +10,21 @@ import io.vertx.rxjava.core.MultiMap;
 import io.vertx.rxjava.core.eventbus.EventBus;
 import io.vertx.rxjava.core.eventbus.Message;
 import io.vertx.rxjava.core.eventbus.MessageConsumer;
+import lombok.extern.java.Log;
 import rx.Observable;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import static io.resx.core.Constants.ERROR_HEADER;
 import static io.resx.core.Constants.HEADER_TRUE;
 
+@Log
 abstract public class AbstractEventStore implements EventStore {
 	protected final EventBus eventBus;
+	protected final Map<String, Aggregate> aggregateCache = new HashMap<>();
 
 	public AbstractEventStore(EventBus eventBus) {
 		this.eventBus = eventBus;
@@ -61,6 +66,7 @@ abstract public class AbstractEventStore implements EventStore {
 	}
 
 	@Override public <T extends Aggregate> Observable<T> publish(String address, T message) {
+		aggregateCache.put(message.getId(), message);
 		eventBus.publish(address, Json.encode(message));
 		return Observable.just(message);
 	}
@@ -80,6 +86,13 @@ abstract public class AbstractEventStore implements EventStore {
 	}
 
 	@Override public <T extends Aggregate, R extends SourcedEvent> Observable<T> load(String id, Class<T> aggregateClass, R event) {
+		if(aggregateCache.containsKey(id)) {
+			Aggregate aggregate = aggregateCache.get(id);
+			aggregate.apply(event);
+			//noinspection unchecked
+			return Observable.just((T) aggregate);
+		}
+
 		return load(id, aggregateClass);
 	}
 
@@ -87,12 +100,12 @@ abstract public class AbstractEventStore implements EventStore {
 	public abstract <T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass);
 
 	@Override
-	public <T extends Aggregate> Consumer<PersistableEvent<? extends SourcedEvent>> applyEvent(String id, T aggregate) {
+	public <T extends Aggregate> Consumer<PersistableEvent<? extends SourcedEvent>> applyEvent(String id, Observable<T> aggregate) {
 		return event -> {
 			try {
 				final Class<? extends SourcedEvent> clazz = event.getClazz();
 				final SourcedEvent o = Json.decodeValue(event.getPayload(), clazz);
-				if(id.equals(o.getId())) aggregate.apply(o);
+				aggregate.subscribe(aggregate1 -> aggregate1.apply(o));
 			} catch (Exception ignored) { }
 		};
 	}
@@ -102,4 +115,13 @@ abstract public class AbstractEventStore implements EventStore {
 
 	@Override
 	public abstract <T extends PersistableEvent<? extends SourcedEvent>> Observable<T> insert(T event);
+
+	@Override public <T extends Aggregate> Observable<T> makeNewAggregateOf(Class<T> aggregateClass) {
+		try {
+			return Observable.just(aggregateClass.newInstance());
+		} catch (InstantiationException | IllegalAccessException e) {
+			log.warning(e.getMessage());
+			return Observable.error(new RuntimeException("could not create aggregate of type " + aggregateClass.getName()));
+		}
+	}
 }

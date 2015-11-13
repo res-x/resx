@@ -1,6 +1,5 @@
 package io.resx.core;
 
-import io.resx.core.event.FailedEvent;
 import io.resx.core.event.PersistableEvent;
 import io.resx.core.event.SourcedEvent;
 import io.vertx.core.json.JsonObject;
@@ -21,19 +20,12 @@ public class InMemoryEventStore extends AbstractEventStore
 	}
 
 	@Override public <T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass) {
-		try
-		{
-			T aggregate;
-			aggregate = aggregateClass.newInstance();
-
-			return getPersistableEventList(id).flatMap(persistableEvents -> {
-				persistableEvents.stream()
-						.filter(event -> !(FailedEvent.class.isAssignableFrom(event.getClazz())))
-						.forEach(applyEvent(id, aggregate));
-				return Observable.just(aggregate);
-			}).doOnError(Observable::error);
-		}
-		catch (InstantiationException | IllegalAccessException e) { return Observable.error(e); }
+		Observable<T> aggregate = makeNewAggregateOf(aggregateClass);
+		return getPersistableEventList(id)
+				.flatMap(persistableEvents -> {
+					persistableEvents.stream().forEach(applyEvent(id, aggregate));
+					return aggregate.doOnNext(t -> aggregateCache.put(t.getId(), t));
+				}).doOnError(Observable::error);
 	}
 
 	@Override public Observable<List<PersistableEvent<? extends SourcedEvent>>> getPersistableEventList()
