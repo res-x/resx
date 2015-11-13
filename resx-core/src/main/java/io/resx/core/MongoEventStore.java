@@ -59,7 +59,6 @@ public class MongoEventStore extends AbstractEventStore
 
 			return getPersistableEventList(query).flatMap(persistableEvents -> {
 				persistableEvents.stream()
-						.filter(event -> !(FailedEvent.class.isAssignableFrom(event.getClazz())))
 						.forEach(applyEvent(id, aggregate));
 				if(aggregate.getId() != null && !"".equals(aggregate.getId()))
 					aggregateCache.put(aggregate.getId(), aggregate);
