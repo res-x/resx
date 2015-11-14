@@ -8,22 +8,20 @@ import io.vertx.rxjava.core.Vertx;
 import io.vertx.rxjava.core.eventbus.EventBus;
 import io.vertx.rxjava.ext.mongo.MongoClient;
 import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j2;
 import rx.Observable;
 
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Log
+@Log4j2
 public class MongoEventStore extends AbstractEventStore
 {
 	private final MongoClient mongoClient;
 
 	public MongoEventStore(Vertx vertx, EventBus eventBus, JsonObject config) {
 		super(eventBus);
-		JsonArray hosts = new JsonArray();
-//		hosts.add(new JsonObject().put("host", "172.31.15.146").put("port", 27017));
-//		config.put("hosts", hosts);
 		mongoClient = MongoClient.createShared(vertx, config);
 	}
 
@@ -89,7 +87,7 @@ public class MongoEventStore extends AbstractEventStore
 			//noinspection unchecked
 			clazz = (Class<? extends SourcedEvent>) Class.forName(event.getString("clazz"));
 		} catch (ClassNotFoundException e) {
-			log.warning(e.getMessage());
+			log.warn(e.getMessage());
 		}
 
 		return new PersistableEvent<>(clazz, event.getJsonObject("payload").encode());

@@ -10,7 +10,7 @@ import io.vertx.rxjava.core.MultiMap;
 import io.vertx.rxjava.core.eventbus.EventBus;
 import io.vertx.rxjava.core.eventbus.Message;
 import io.vertx.rxjava.core.eventbus.MessageConsumer;
-import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j2;
 import rx.Observable;
 
 import java.util.HashMap;
@@ -21,7 +21,7 @@ import java.util.function.Consumer;
 import static io.resx.core.Constants.ERROR_HEADER;
 import static io.resx.core.Constants.HEADER_TRUE;
 
-@Log
+@Log4j2
 abstract public class AbstractEventStore implements EventStore {
 	protected final EventBus eventBus;
 	protected final Map<String, Aggregate> aggregateCache = new HashMap<>();
@@ -134,7 +134,7 @@ abstract public class AbstractEventStore implements EventStore {
 		try {
 			return Observable.just(aggregateClass.newInstance());
 		} catch (InstantiationException | IllegalAccessException e) {
-			log.warning(e.getMessage());
+			log.warn(e.getMessage());
 			return Observable.error(new RuntimeException("could not create aggregate of type " + aggregateClass.getName()));
 		}
 	}
