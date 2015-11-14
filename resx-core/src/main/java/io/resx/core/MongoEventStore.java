@@ -2,6 +2,7 @@ package io.resx.core;
 
 import io.resx.core.event.PersistableEvent;
 import io.resx.core.event.SourcedEvent;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.rxjava.core.Vertx;
 import io.vertx.rxjava.core.eventbus.EventBus;
@@ -18,10 +19,12 @@ public class MongoEventStore extends AbstractEventStore
 {
 	private final MongoClient mongoClient;
 
-	public MongoEventStore(Vertx vertx, EventBus eventBus) {
+	public MongoEventStore(Vertx vertx, EventBus eventBus, JsonObject config) {
 		super(eventBus);
-		final JsonObject config = new JsonObject();
-		mongoClient = MongoClient.createShared(vertx, config, "mongodb://localhost:27017");
+		JsonArray hosts = new JsonArray();
+//		hosts.add(new JsonObject().put("host", "172.31.15.146").put("port", 27017));
+//		config.put("hosts", hosts);
+		mongoClient = MongoClient.createShared(vertx, config);
 	}
 
 	@Override public <T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass) {
