@@ -9,9 +9,7 @@ import io.vertx.rxjava.ext.mongo.MongoClient;
 import lombok.extern.java.Log;
 import rx.Observable;
 
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,17 +34,11 @@ public class MongoEventStore extends AbstractEventStore
 	}
 
 	public <T extends Aggregate> Observable<T> load(JsonObject query, Class<T> aggregateClass) {
-		String id = query.getString("payload.id");
-		if(id != null && aggregateCache.containsKey(id)) {
-			//noinspection unchecked
-			return Observable.just((T)aggregateCache.get(id));
-		}
-
 		return loadFromMongo(aggregateClass, query);
 	}
 
 	public <T extends Aggregate, R extends SourcedEvent> Observable<T> load(JsonObject query, Class<T> aggregateClass, R event) {
-		String id = query.getString("payload.id");
+		String id = query.encode();
 		if(aggregateCache.containsKey(id)) {
 			Aggregate aggregate = aggregateCache.get(id);
 			aggregate.apply(event);
@@ -60,9 +52,9 @@ public class MongoEventStore extends AbstractEventStore
 	private <T extends Aggregate> Observable<T> loadFromMongo(Class<T> aggregateClass, JsonObject query) {
 		Observable<T> newAggregate = makeNewAggregateOf(aggregateClass);
 		return newAggregate.flatMap(aggregate -> getPersistableEventList(query)
-				.map(persistableEvents -> {
+				.flatMap(persistableEvents -> {
 					persistableEvents.stream().forEach(applyEvent(aggregate));
-					return aggregate;
+					return Observable.just(aggregate);
 				}));
 	}
 
@@ -82,7 +74,7 @@ public class MongoEventStore extends AbstractEventStore
 	public <T extends PersistableEvent<? extends SourcedEvent>> Observable<T> insert(T event) {
 		JsonObject document = new JsonObject();
 		document.put("_id", event.getId());
-		document.put("dateCreated", ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+		document.put("dateCreated", new Date().getTime());
 		document.put("clazz", event.getClazz().getCanonicalName());
 		document.put("payload", new JsonObject(event.getPayload()));
 		return mongoClient.insertObservable("events", document).flatMap(s -> Observable.just(event));
