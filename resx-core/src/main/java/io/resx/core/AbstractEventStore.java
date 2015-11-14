@@ -65,6 +65,16 @@ abstract public class AbstractEventStore implements EventStore {
 		return insert(persistableEvent).flatMap(tPersistableEvent1 -> Observable.just(message));
 	}
 
+	@Override public <T extends DistributedEvent, R extends Aggregate> Observable<R> publish(T event, R message) {
+		return publish(event.getAddress(), message, message.getId());
+	}
+
+	@Override public <T extends DistributedEvent, R extends Aggregate> Observable<R> publish(T event, R message, String cacheKey) {
+		aggregateCache.put(cacheKey, message);
+		eventBus.publish(event.getAddress(), Json.encode(message));
+		return Observable.just(message);
+	}
+
 	@Override public <T extends Aggregate> Observable<T> publish(String address, T message) {
 		return publish(address, message, message.getId());
 	}

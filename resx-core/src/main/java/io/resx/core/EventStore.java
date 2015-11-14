@@ -24,6 +24,10 @@ public interface EventStore
 
 	<T extends FailedEvent> Observable<T> publish(String address, T message);
 
+	<T extends DistributedEvent, R extends Aggregate> Observable<R> publish(T event, R message);
+
+	<T extends DistributedEvent, R extends Aggregate> Observable<R> publish(T event, R message, String cacheKey);
+
 	<T extends Aggregate> Observable<T> publish(String address, T message);
 
 	<T extends Aggregate> Observable<T> publish(String address, T message, String cacheKey);
