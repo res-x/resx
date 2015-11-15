@@ -45,7 +45,7 @@ abstract public class AbstractEventStore implements EventStore {
 					if(!hasSendError(objectMessage)) {
 						//noinspection unchecked
 						R entity = clazz.equals(String.class)
-								? (R)messageBody
+								? (R) messageBody
 								: Json.decodeValue(messageBody, clazz);
 						return Observable.just(entity);
 					}
@@ -56,13 +56,13 @@ abstract public class AbstractEventStore implements EventStore {
 	@Override public <T extends SourcedEvent> Observable<T> publish(String address, T message, Class<T> clazz) {
 		eventBus.publish(address, Json.encode(message));
 		PersistableEvent<T> tPersistableEvent = new PersistableEvent<>(clazz, Json.encode(message));
-		return insert(tPersistableEvent).flatMap(tPersistableEvent1 -> Observable.just(message));
+		return insert(tPersistableEvent).map(tPersistableEvent1 -> message);
 	}
 
 	@Override public <T extends FailedEvent> Observable<T> publish(String address, T message) {
 		eventBus.publish(address, Json.encode(message));
 		PersistableEvent<? extends FailedEvent> persistableEvent = new PersistableEvent<>(message.getClass(), Json.encode(message));
-		return insert(persistableEvent).flatMap(tPersistableEvent1 -> Observable.just(message));
+		return insert(persistableEvent).map(tPersistableEvent1 -> message);
 	}
 
 	@Override public <T extends DistributedEvent, R extends Aggregate> Observable<R> publish(T event, R message) {
