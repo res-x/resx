@@ -36,8 +36,8 @@ public class SQLiteEventStore extends AbstractEventStore {
 				.flatMap(sqlConnection -> Observable.just(sqlConnection)
 						.doOnNext(sqlConnection2 -> sqlConnection2.setAutoCommitObservable(true).subscribe())
 						.doOnNext(sqlConnection1 -> sqlConnection1.executeObservable("CREATE TABLE IF NOT EXISTS EVENTS(\n" +
-								"   ID INT PRIMARY KEY     NOT NULL,\n" +
-								"   AGGREGATE_ID INT       NOT NULL,\n" +
+								"   ID TEXT PRIMARY KEY     NOT NULL,\n" +
+								"   AGGREGATE_ID TEXT       NOT NULL,\n" +
 								"   PAYLOAD        TEXT    NOT NULL,\n" +
 								"   CLAZZ          TEXT    NOT NULL\n" +
 								");").subscribe())
@@ -55,13 +55,13 @@ public class SQLiteEventStore extends AbstractEventStore {
 
 		return newAggregate.flatMap(aggregate -> client.getConnectionObservable()
 				.flatMap(sqlConnection -> sqlConnection
-						.queryWithParamsObservable("select * from events where aggregate_id = :id",
+						.queryWithParamsObservable("select * from events where aggregate_id = ?",
 								new JsonArray(Collections.singletonList(id)))
 						.flatMap(resultSet -> {
-							resultSet.getRows().forEach(columns -> {
-								final PersistableEvent<? extends SourcedEvent> persistableEvent = makePersistableEventFromJson(columns);
-								aggregate.apply(persistableEvent);
-							});
+							resultSet.getRows()
+									.stream()
+									.map(this::makePersistableEventFromJson)
+									.forEach(applyEvent(aggregate));
 							return Observable.just(aggregate);
 						})
 						.onErrorReturn(throwable -> aggregate)
@@ -72,12 +72,12 @@ public class SQLiteEventStore extends AbstractEventStore {
 		Class<? extends SourcedEvent> clazz = null;
 		try {
 			//noinspection unchecked
-			clazz = (Class<? extends SourcedEvent>) Class.forName(event.getString("clazz"));
+			clazz = (Class<? extends SourcedEvent>) Class.forName(event.getString("CLAZZ"));
 		} catch (ClassNotFoundException e) {
 			log.warn(e.getMessage());
 		}
 
-		return new PersistableEvent<>(clazz, event.getJsonObject("payload").encode());
+		return new PersistableEvent<>(clazz, event.getString("PAYLOAD"));
 	}
 
 	@Override
