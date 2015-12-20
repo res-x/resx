@@ -30,8 +30,8 @@ abstract public class AbstractEventStore implements EventStore {
 		this.eventBus = eventBus;
 	}
 
-	@Override public <T extends SourcedEvent> Observable<T> publish(T message, Class<T> clazz) {
-		return publish(message.getAddress(), message, clazz);
+	@Override public <T extends SourcedEvent> Observable<T> publishSourcedEvent(T message, Class<T> clazz) {
+		return publishSourcedEvent(message.getAddress(), message, clazz);
 	}
 
 	@Override public <T extends DistributedEvent, R> Observable<R> publish(T message, Class<R> clazz) {
@@ -53,7 +53,7 @@ abstract public class AbstractEventStore implements EventStore {
 				});
 	}
 
-	@Override public <T extends SourcedEvent> Observable<T> publish(String address, T message, Class<T> clazz) {
+	@Override public <T extends SourcedEvent> Observable<T> publishSourcedEvent(String address, T message, Class<T> clazz) {
 		eventBus.publish(address, Json.encode(message));
 		PersistableEvent<T> tPersistableEvent = new PersistableEvent<>(clazz, Json.encode(message));
 		return insert(tPersistableEvent).map(tPersistableEvent1 -> message);

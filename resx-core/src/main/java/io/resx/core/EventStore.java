@@ -14,13 +14,13 @@ import java.util.function.Consumer;
 
 public interface EventStore
 {
-	<T extends SourcedEvent> Observable<T> publish(T message, Class<T> clazz);
+	<T extends SourcedEvent> Observable<T> publishSourcedEvent(T message, Class<T> clazz);
 
 	<T extends DistributedEvent, R> Observable<R> publish(T message, Class<R> clazz);
 
 	<T extends DistributedEvent, R> Observable<R> publish(String address, T message, Class<R> clazz);
 
-	<T extends SourcedEvent> Observable<T> publish(String address, T message, Class<T> clazz);
+	<T extends SourcedEvent> Observable<T> publishSourcedEvent(String address, T message, Class<T> clazz);
 
 	<T extends FailedEvent> Observable<T> publish(String address, T message);
 
