@@ -40,12 +40,22 @@
 			<dependency>
 				<groupId>io.vertx</groupId>
 				<artifactId>vertx-core</artifactId>
-				<version>3.1.0</version>
+				<version>3.2.0</version>
 			</dependency>
 			<dependency>
 				<groupId>io.vertx</groupId>
 				<artifactId>vertx-rx-java</artifactId>
-				<version>3.1.0</version>
+				<version>3.2.0</version>
+			</dependency>
+			<dependency>
+				<groupId>io.vertx</groupId>
+				<artifactId>vertx-jdbc-client</artifactId>
+				<version>3.2.0</version>
+			</dependency>
+			<dependency>
+				<groupId>io.vertx</groupId>
+				<artifactId>vertx-sql-common</artifactId>
+				<version>3.2.0</version>
 			</dependency>
 			<dependency>
 				<groupId>org.apache.logging.log4j</groupId>
