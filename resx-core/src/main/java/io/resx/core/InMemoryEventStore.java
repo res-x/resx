@@ -15,12 +15,13 @@ public class InMemoryEventStore extends AbstractEventStore
 {
 	private final Map<String, List<PersistableEvent<? extends SourcedEvent>>> eventList = new HashMap<>();
 
-	public InMemoryEventStore(EventBus eventBus) {
+	public InMemoryEventStore(final EventBus eventBus) {
 		super(eventBus);
 	}
 
-	@Override public <T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass) {
-		Observable<T> newAggregate = makeNewAggregateOf(aggregateClass);
+	@Override
+	public <T extends Aggregate> Observable<T> load(final String id, final Class<T> aggregateClass) {
+		final Observable<T> newAggregate = makeNewAggregateOf(aggregateClass);
 		return newAggregate.flatMap(aggregate -> getPersistableEventList(id)
 				.flatMap(persistableEvents -> {
 					persistableEvents.stream().forEach(applyEvent(aggregate));
@@ -33,9 +34,9 @@ public class InMemoryEventStore extends AbstractEventStore
 		return getPersistableEventList(null);
 	}
 
-	public Observable<List<PersistableEvent<? extends SourcedEvent>>> getPersistableEventList(String id)
+	public Observable<List<PersistableEvent<? extends SourcedEvent>>> getPersistableEventList(final String id)
 	{
-		List<PersistableEvent<? extends SourcedEvent>> eventList = new LinkedList<>();
+		final List<PersistableEvent<? extends SourcedEvent>> eventList = new LinkedList<>();
 		if(id == null) {
 			this.eventList.values().forEach(eventList::addAll);
 		}
@@ -48,7 +49,7 @@ public class InMemoryEventStore extends AbstractEventStore
 		return Observable.just(eventList);
 	}
 
-	public <T extends PersistableEvent<? extends SourcedEvent>> Observable<T> insert(T event) {
+	public <T extends PersistableEvent<? extends SourcedEvent>> Observable<T> insert(final T event) {
 		final JsonObject jsonObject = new JsonObject(event.getPayload());
 		final String id = jsonObject.getString("id");
 		if(eventList.containsKey(id)) {

@@ -8,14 +8,12 @@ import io.vertx.ext.sql.ResultSet;
 import io.vertx.rxjava.core.Vertx;
 import io.vertx.rxjava.core.eventbus.EventBus;
 import io.vertx.rxjava.ext.jdbc.JDBCClient;
-import io.vertx.rxjava.ext.mongo.MongoClient;
 import io.vertx.rxjava.ext.sql.SQLConnection;
 import lombok.extern.log4j.Log4j2;
 import rx.Observable;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,7 +21,7 @@ import java.util.stream.Collectors;
 public class SQLiteEventStore extends AbstractEventStore {
 	private final JDBCClient client;
 
-	public SQLiteEventStore(Vertx vertx, EventBus eventBus, JsonObject config) {
+	public SQLiteEventStore(final Vertx vertx, final EventBus eventBus, JsonObject config) {
 		super(eventBus);
 		config = (config == null)
 				? new JsonObject()
@@ -43,20 +41,20 @@ public class SQLiteEventStore extends AbstractEventStore {
 				).subscribe();
 	}
 
-	private Observable<SQLConnection> getSqlConnectionObservable(SQLConnection sqlConnection) {
+	private Observable<SQLConnection> getSqlConnectionObservable(final SQLConnection sqlConnection) {
 		return Observable.just(sqlConnection)
 				.doOnNext(sqlConnection2 -> sqlConnection2.setAutoCommitObservable(true).subscribe())
 				.doOnUnsubscribe(sqlConnection::close);
 	}
 
 	@Override
-	public <T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass) {
+	public <T extends Aggregate> Observable<T> load(final String id, final Class<T> aggregateClass) {
 		if (aggregateCache.containsKey(id)) {
 			//noinspection unchecked
 			return Observable.just((T) aggregateCache.get(id));
 		}
 
-		Observable<T> newAggregate = makeNewAggregateOf(aggregateClass);
+		final Observable<T> newAggregate = makeNewAggregateOf(aggregateClass);
 
 		return newAggregate.flatMap(aggregate -> client.getConnectionObservable()
 				.flatMap(sqlConnection -> getSqlConnectionObservable(sqlConnection)
@@ -73,12 +71,12 @@ public class SQLiteEventStore extends AbstractEventStore {
 								.onErrorReturn(throwable -> aggregate))));
 	}
 
-	private PersistableEvent<? extends SourcedEvent> makePersistableEventFromJson(JsonObject event) {
+	private PersistableEvent<? extends SourcedEvent> makePersistableEventFromJson(final JsonObject event) {
 		Class<? extends SourcedEvent> clazz = null;
 		try {
 			//noinspection unchecked
 			clazz = (Class<? extends SourcedEvent>) Class.forName(event.getString("CLAZZ"));
-		} catch (ClassNotFoundException e) {
+		} catch (final ClassNotFoundException e) {
 			log.warn(e.getMessage());
 		}
 
@@ -97,7 +95,7 @@ public class SQLiteEventStore extends AbstractEventStore {
 										.collect(Collectors.toList()))));
 	}
 
-	public <T extends PersistableEvent<? extends SourcedEvent>> Observable<T> insert(T event) {
+	public <T extends PersistableEvent<? extends SourcedEvent>> Observable<T> insert(final T event) {
 		final JsonObject payload = new JsonObject(event.getPayload());
 		final String aggregateId = payload.getString("id");
 		return client.getConnectionObservable()

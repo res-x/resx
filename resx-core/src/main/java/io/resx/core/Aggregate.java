@@ -14,9 +14,9 @@ public class Aggregate
 {
 	private String id;
 
-	public <T> Aggregate apply(T event) {
+	public <T> Aggregate apply(final T event) {
 		final Method[] methods = getClass().getMethods();
-		for (Method method : methods)
+		for (final Method method : methods)
 		{
 			final Class<?>[] parameterTypes = method.getParameterTypes();
 

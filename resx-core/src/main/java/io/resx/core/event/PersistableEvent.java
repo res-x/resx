@@ -15,7 +15,7 @@ public class PersistableEvent<T extends SourcedEvent> {
 		id = UUID.randomUUID().toString();
 	}
 
-	public PersistableEvent(Class<T> clazz, String payload) {
+	public PersistableEvent(final Class<T> clazz, final String payload) {
 		this();
 		this.clazz = clazz;
 		this.payload = payload;

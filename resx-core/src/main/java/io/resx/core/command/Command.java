@@ -4,7 +4,7 @@ import io.resx.core.event.DistributedEvent;
 
 public class Command extends DistributedEvent
 {
-	public Command(String address)
+	public Command(final String address)
 	{
 		super(address);
 	}

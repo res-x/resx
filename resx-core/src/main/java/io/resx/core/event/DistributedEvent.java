@@ -4,7 +4,7 @@ public class DistributedEvent
 {
 	private final String address;
 
-	public DistributedEvent(String address) {
+	public DistributedEvent(final String address) {
 		this.address = address;
 	}
 
