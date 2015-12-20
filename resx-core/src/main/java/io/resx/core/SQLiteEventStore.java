@@ -33,15 +33,20 @@ public class SQLiteEventStore extends AbstractEventStore {
 
 		client = JDBCClient.createShared(vertx, config);
 		client.getConnectionObservable()
-				.flatMap(sqlConnection -> Observable.just(sqlConnection)
-						.doOnNext(sqlConnection2 -> sqlConnection2.setAutoCommitObservable(true).subscribe())
+				.flatMap(sqlConnection -> getSqlConnectionObservable(sqlConnection)
 						.doOnNext(sqlConnection1 -> sqlConnection1.executeObservable("CREATE TABLE IF NOT EXISTS EVENTS(\n" +
 								"   ID TEXT PRIMARY KEY     NOT NULL,\n" +
 								"   AGGREGATE_ID TEXT       NOT NULL,\n" +
 								"   PAYLOAD        TEXT    NOT NULL,\n" +
 								"   CLAZZ          TEXT    NOT NULL\n" +
 								");").subscribe())
-						).subscribe();
+				).subscribe();
+	}
+
+	private Observable<SQLConnection> getSqlConnectionObservable(SQLConnection sqlConnection) {
+		return Observable.just(sqlConnection)
+				.doOnNext(sqlConnection2 -> sqlConnection2.setAutoCommitObservable(true).subscribe())
+				.doOnUnsubscribe(sqlConnection::close);
 	}
 
 	@Override
@@ -54,18 +59,18 @@ public class SQLiteEventStore extends AbstractEventStore {
 		Observable<T> newAggregate = makeNewAggregateOf(aggregateClass);
 
 		return newAggregate.flatMap(aggregate -> client.getConnectionObservable()
-				.flatMap(sqlConnection -> sqlConnection
-						.queryWithParamsObservable("select * from events where aggregate_id = ?",
-								new JsonArray(Collections.singletonList(id)))
-						.flatMap(resultSet -> {
-							resultSet.getRows()
-									.stream()
-									.map(this::makePersistableEventFromJson)
-									.forEach(applyEvent(aggregate));
-							return Observable.just(aggregate);
-						})
-						.onErrorReturn(throwable -> aggregate)
-				));
+				.flatMap(sqlConnection -> getSqlConnectionObservable(sqlConnection)
+						.flatMap(sqlConnection1 -> sqlConnection1
+								.queryWithParamsObservable("select * from events where aggregate_id = ?",
+										new JsonArray(Collections.singletonList(id)))
+								.flatMap(resultSet -> {
+									resultSet.getRows()
+											.stream()
+											.map(this::makePersistableEventFromJson)
+											.forEach(applyEvent(aggregate));
+									return Observable.just(aggregate);
+								})
+								.onErrorReturn(throwable -> aggregate))));
 	}
 
 	private PersistableEvent<? extends SourcedEvent> makePersistableEventFromJson(JsonObject event) {
@@ -83,24 +88,23 @@ public class SQLiteEventStore extends AbstractEventStore {
 	@Override
 	public Observable<List<PersistableEvent<? extends SourcedEvent>>> getPersistableEventList() {
 		return client.getConnectionObservable()
-				.flatMap(sqlConnection -> sqlConnection
-						.queryObservable("select * from events")
-						.map(ResultSet::getRows)
-						.map(resultSet -> resultSet
-								.stream()
-								.map(this::makePersistableEventFromJson)
-								.collect(Collectors.toList())));
-
+				.flatMap(sqlConnection -> getSqlConnectionObservable(sqlConnection)
+						.flatMap(sqlConnection1 -> sqlConnection1.queryObservable("select * from events")
+								.map(ResultSet::getRows)
+								.map(resultSet -> resultSet
+										.stream()
+										.map(this::makePersistableEventFromJson)
+										.collect(Collectors.toList()))));
 	}
 
 	public <T extends PersistableEvent<? extends SourcedEvent>> Observable<T> insert(T event) {
 		final JsonObject payload = new JsonObject(event.getPayload());
 		final String aggregateId = payload.getString("id");
 		return client.getConnectionObservable()
-				.flatMap(sqlConnection -> sqlConnection
-						.updateWithParamsObservable("insert into events (id, aggregate_id, clazz, payload) values (?, ?, ?, ?)",
+				.flatMap(sqlConnection -> getSqlConnectionObservable(sqlConnection)
+						.flatMap(sqlConnection1 -> sqlConnection1.updateWithParamsObservable("insert into events (id, aggregate_id, clazz, payload) values (?, ?, ?, ?)",
 								new JsonArray(Arrays.asList(event.getId(), aggregateId, event.getClazz().getCanonicalName(), event.getPayload()))))
-				.flatMap(s -> Observable.just(event))
-				.onErrorReturn(throwable -> event);
+						.flatMap(s -> Observable.just(event))
+						.onErrorReturn(throwable -> event));
 	}
 }
