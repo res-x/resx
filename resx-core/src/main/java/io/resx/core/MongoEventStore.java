@@ -33,6 +33,11 @@ public class MongoEventStore extends AbstractEventStore
 		return loadFromMongo(aggregateClass, new JsonObject().put("payload.id", id));
 	}
 
+	@Override
+	public <T extends Aggregate> Observable<List<Observable<T>>> loadAll(Class<T> aggregateClass) {
+		return null;
+	}
+
 	public <T extends Aggregate> Observable<T> load(final JsonObject query, final Class<T> aggregateClass) {
 		return loadFromMongo(aggregateClass, query);
 	}

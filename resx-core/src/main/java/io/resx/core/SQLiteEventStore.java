@@ -56,11 +56,18 @@ public class SQLiteEventStore extends AbstractEventStore {
 
 		final Observable<T> newAggregate = makeNewAggregateOf(aggregateClass);
 
+		final String query = "select * from events where aggregate_id = ?";
+		final JsonArray params = new JsonArray(Collections.singletonList(id));
+
+		return loadAggregateWithQuery(newAggregate, query, params);
+	}
+
+	private <T extends Aggregate> Observable<T> loadAggregateWithQuery(Observable<T> newAggregate, String query, JsonArray params) {
 		return newAggregate.flatMap(aggregate -> client.getConnectionObservable()
 				.flatMap(sqlConnection -> getSqlConnectionObservable(sqlConnection)
 						.flatMap(sqlConnection1 -> sqlConnection1
-								.queryWithParamsObservable("select * from events where aggregate_id = ?",
-										new JsonArray(Collections.singletonList(id)))
+								.queryWithParamsObservable(query,
+										params)
 								.flatMap(resultSet -> {
 									resultSet.getRows()
 											.stream()
@@ -69,6 +76,21 @@ public class SQLiteEventStore extends AbstractEventStore {
 									return Observable.just(aggregate);
 								})
 								.onErrorReturn(throwable -> aggregate))));
+	}
+
+	@Override
+	public <T extends Aggregate> Observable<List<Observable<T>>> loadAll(Class<T> aggregateClass) {
+		return client.getConnectionObservable()
+				.flatMap(sqlConnection -> getSqlConnectionObservable(sqlConnection)
+						.flatMap(sqlConnection1 -> sqlConnection1
+								.queryObservable("select distinct aggregate_id from events")
+								.map(resultSet -> resultSet.getRows()
+										.stream()
+										.map(entries -> {
+											final String id = entries.getString("AGGREGATE_ID");
+											return load(id, aggregateClass);
+										}).collect(Collectors.toList()))
+								.onErrorReturn(throwable -> null)));
 	}
 
 	private PersistableEvent<? extends SourcedEvent> makePersistableEventFromJson(final JsonObject event) {

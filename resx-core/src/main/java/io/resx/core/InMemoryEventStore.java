@@ -29,6 +29,11 @@ public class InMemoryEventStore extends AbstractEventStore
 				})).doOnError(Observable::error);
 	}
 
+	@Override
+	public <T extends Aggregate> Observable<List<Observable<T>>> loadAll(Class<T> aggregateClass) {
+		return null;
+	}
+
 	@Override public Observable<List<PersistableEvent<? extends SourcedEvent>>> getPersistableEventList()
 	{
 		return getPersistableEventList(null);
