@@ -22,13 +22,11 @@ import java.util.stream.Collectors;
 public class SQLiteEventStore extends AbstractEventStore {
 	private final JDBCClient client;
 
-	public SQLiteEventStore(final Vertx vertx, final EventBus eventBus, JsonObject config) {
+	public SQLiteEventStore(final Vertx vertx, final EventBus eventBus, final String dbPath) {
 		super(eventBus);
-		config = (config == null)
-				? new JsonObject()
-				.put("url", "jdbc:sqlite:sample.db")
-				.put("driver_class", "org.sqlite.JDBC")
-				: config;
+		JsonObject config = new JsonObject()
+				.put("url", "jdbc:sqlite:" + dbPath)
+				.put("driver_class", "org.sqlite.JDBC");
 
 		client = JDBCClient.createShared(vertx, config);
 		client.getConnectionObservable()
