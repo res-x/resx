@@ -10,6 +10,7 @@ import io.vertx.rxjava.core.eventbus.EventBus;
 import io.vertx.rxjava.ext.jdbc.JDBCClient;
 import io.vertx.rxjava.ext.sql.SQLConnection;
 import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.util.Strings;
 import rx.Observable;
 
 import java.util.Arrays;
@@ -73,7 +74,9 @@ public class SQLiteEventStore extends AbstractEventStore {
 											.stream()
 											.map(this::makePersistableEventFromJson)
 											.forEach(applyEvent(aggregate));
-									return Observable.just(aggregate);
+									return Strings.isNotEmpty(aggregate.getId())
+											? Observable.just(aggregate)
+											: Observable.empty();
 								})
 								.onErrorReturn(throwable -> aggregate))));
 	}
@@ -89,7 +92,8 @@ public class SQLiteEventStore extends AbstractEventStore {
 										.map(entries -> {
 											final String id = entries.getString("AGGREGATE_ID");
 											return load(id, aggregateClass);
-										}).collect(Collectors.toList()))
+										})
+										.collect(Collectors.toList()))
 								.onErrorReturn(throwable -> null)));
 	}
 
