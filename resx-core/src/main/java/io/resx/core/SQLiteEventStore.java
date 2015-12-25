@@ -76,7 +76,7 @@ public class SQLiteEventStore extends AbstractEventStore {
 											.forEach(applyEvent(aggregate));
 									return Strings.isNotEmpty(aggregate.getId())
 											? Observable.just(aggregate)
-											: Observable.empty();
+											: Observable.just(null);
 								})
 								.onErrorReturn(throwable -> aggregate))));
 	}
