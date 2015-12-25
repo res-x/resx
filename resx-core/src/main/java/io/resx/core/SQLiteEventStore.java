@@ -91,7 +91,8 @@ public class SQLiteEventStore extends AbstractEventStore {
 										.stream()
 										.map(entries -> {
 											final String id = entries.getString("AGGREGATE_ID");
-											return load(id, aggregateClass);
+											return load(id, aggregateClass)
+													.flatMap(t -> t == null ? Observable.empty() : Observable.just(t));
 										})
 										.collect(Collectors.toList()))
 								.onErrorReturn(throwable -> null)));
