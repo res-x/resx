@@ -1,5 +1,6 @@
 package io.resx.core;
 
+import io.resx.core.event.SourcedEvent;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.java.Log;
@@ -14,7 +15,7 @@ public class Aggregate
 {
 	private String id;
 
-	public <T> Aggregate apply(final T event) {
+	public <T extends SourcedEvent> Aggregate apply(final T event) {
 		final Method[] methods = getClass().getMethods();
 		for (final Method method : methods)
 		{

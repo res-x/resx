@@ -72,9 +72,11 @@ public class SQLiteEventStore extends AbstractEventStore {
 											.stream()
 											.map(this::makePersistableEventFromJson)
 											.forEach(applyEvent(aggregate));
-									return Strings.isNotEmpty(aggregate.getId())
-											? Observable.just(aggregate)
-											: Observable.just(null);
+									if(Strings.isNotEmpty(aggregate.getId())) {
+										aggregateCache.put(aggregate.getId(), aggregate);
+										return Observable.just(aggregate);
+									}
+									return Observable.just(null);
 								})
 								.onErrorReturn(throwable -> aggregate))));
 	}

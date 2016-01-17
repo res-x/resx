@@ -60,6 +60,10 @@ abstract public class AbstractEventStore implements EventStore {
 	public <T extends SourcedEvent> Observable<T> publishSourcedEvent(final String address, final T message, final Class<T> clazz) {
 		eventBus.publish(address, Json.encode(message));
 		final PersistableEvent<T> tPersistableEvent = new PersistableEvent<>(clazz, Json.encode(message));
+		if(aggregateCache.containsKey(message.getId())) {
+			final Aggregate aggregate = aggregateCache.get(message.getId());
+			aggregate.apply(message);
+		}
 		return insert(tPersistableEvent).map(tPersistableEvent1 -> message);
 	}
 
