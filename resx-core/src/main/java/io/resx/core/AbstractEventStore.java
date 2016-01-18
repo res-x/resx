@@ -127,7 +127,12 @@ abstract public class AbstractEventStore implements EventStore {
 	}
 
 	@Override
-	public abstract <T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass);
+	public abstract <T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass, boolean useCache);
+
+	@Override
+	public <T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass) {
+		return load(id, aggregateClass, true);
+	}
 
 	@Override
 	public <T extends Aggregate> Observable<List<Observable<T>>> loadAll(Class<T> aggregateClass) {

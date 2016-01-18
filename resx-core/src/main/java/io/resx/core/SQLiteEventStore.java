@@ -48,8 +48,8 @@ public class SQLiteEventStore extends AbstractEventStore {
 	}
 
 	@Override
-	public <T extends Aggregate> Observable<T> load(final String id, final Class<T> aggregateClass) {
-		if (aggregateCache.containsKey(id)) {
+	public <T extends Aggregate> Observable<T> load(final String id, final Class<T> aggregateClass, boolean useCache) {
+		if (useCache && aggregateCache.containsKey(id)) {
 			//noinspection unchecked
 			return Observable.just((T) aggregateCache.get(id));
 		}

@@ -20,7 +20,7 @@ public class InMemoryEventStore extends AbstractEventStore
 	}
 
 	@Override
-	public <T extends Aggregate> Observable<T> load(final String id, final Class<T> aggregateClass) {
+	public <T extends Aggregate> Observable<T> load(final String id, final Class<T> aggregateClass, boolean useCache) {
 		final Observable<T> newAggregate = makeNewAggregateOf(aggregateClass);
 		return newAggregate.flatMap(aggregate -> getPersistableEventList(id)
 				.flatMap(persistableEvents -> {
