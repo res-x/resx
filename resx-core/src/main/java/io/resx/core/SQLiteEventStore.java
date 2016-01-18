@@ -13,6 +13,7 @@ import lombok.extern.log4j.Log4j2;
 import org.apache.logging.log4j.util.Strings;
 import rx.Observable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -82,7 +83,19 @@ public class SQLiteEventStore extends AbstractEventStore {
 	}
 
 	@Override
-	public <T extends Aggregate> Observable<List<Observable<T>>> loadAll(Class<T> aggregateClass) {
+	public <T extends Aggregate> Observable<List<Observable<T>>> loadAll(Class<T> aggregateClass, boolean useCache) {
+		if(useCache) {
+			final List<Observable<T>> collect = aggregateCache.values().stream()
+					.filter(aggregate -> aggregate.getClass().equals(aggregateClass))
+					.map(aggregateClass::cast)
+					.map(Observable::just)
+					.collect(Collectors.toList());
+
+			if(collect.size() != 0) {
+				return Observable.just(collect);
+			}
+		}
+
 		return client.getConnectionObservable()
 				.flatMap(sqlConnection -> getSqlConnectionObservable(sqlConnection)
 						.flatMap(sqlConnection1 -> sqlConnection1

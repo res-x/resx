@@ -130,6 +130,11 @@ abstract public class AbstractEventStore implements EventStore {
 	public abstract <T extends Aggregate> Observable<T> load(String id, Class<T> aggregateClass);
 
 	@Override
+	public <T extends Aggregate> Observable<List<Observable<T>>> loadAll(Class<T> aggregateClass) {
+		return loadAll(aggregateClass, true);
+	}
+
+	@Override
 	public <T extends Aggregate> Consumer<PersistableEvent<? extends SourcedEvent>> applyEvent(final T aggregate) {
 		return event -> {
 			try {
@@ -155,5 +160,10 @@ abstract public class AbstractEventStore implements EventStore {
 			log.warn(e.getMessage());
 			return Observable.error(new RuntimeException("could not create aggregate of type " + aggregateClass.getName()));
 		}
+	}
+
+	@Override
+	public void cacheAggregate(Aggregate aggregate) {
+		aggregateCache.put(aggregate.getId(), aggregate);
 	}
 }

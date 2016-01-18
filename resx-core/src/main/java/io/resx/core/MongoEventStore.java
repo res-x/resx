@@ -34,7 +34,7 @@ public class MongoEventStore extends AbstractEventStore
 	}
 
 	@Override
-	public <T extends Aggregate> Observable<List<Observable<T>>> loadAll(Class<T> aggregateClass) {
+	public <T extends Aggregate> Observable<List<Observable<T>>> loadAll(Class<T> aggregateClass, boolean useCache) {
 		return null;
 	}
 

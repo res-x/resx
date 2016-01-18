@@ -42,6 +42,8 @@ public interface EventStore
 
 	<T extends Aggregate> Observable<List<Observable<T>>> loadAll(Class<T> aggregateClass);
 
+	<T extends Aggregate> Observable<List<Observable<T>>> loadAll(Class<T> aggregateClass, boolean useCache);
+
 	<T extends Aggregate> Consumer<PersistableEvent<? extends SourcedEvent>> applyEvent(T aggregate);
 
 	<T extends Aggregate> Observable<T> makeNewAggregateOf(Class<T> aggregateClass);
@@ -49,4 +51,6 @@ public interface EventStore
 	Observable<List<PersistableEvent<? extends SourcedEvent>>> getPersistableEventList();
 
 	<T extends PersistableEvent<? extends SourcedEvent>> Observable<T> insert(T event);
+
+	void cacheAggregate(Aggregate aggregate);
 }
