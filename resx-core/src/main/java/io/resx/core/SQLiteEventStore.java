@@ -77,7 +77,7 @@ public class SQLiteEventStore extends AbstractEventStore {
 											.forEach(applyEvent(aggregate));
 									if(Strings.isNotEmpty(aggregate.getId())) {
 										aggregateCache.put(aggregate.getId(), aggregate);
-										log.info("Loading aggregate of type {} with id {}", aggregate.getClass(), aggregate.getId());
+										log.debug("Loading aggregate of type {} with id {}", aggregate.getClass(), aggregate.getId());
 										return Observable.just(aggregate);
 									}
 									return Observable.just(null);

@@ -182,7 +182,9 @@ abstract public class AbstractEventStore implements EventStore {
 		try {
 			return Observable.just(aggregateClass.newInstance());
 		} catch (InstantiationException | IllegalAccessException e) {
-			log.warn(e.getMessage());
+			if(e.getMessage() != null) {
+				log.warn(e.getMessage());
+			}
 			return Observable.error(new RuntimeException("could not create aggregate of type " + aggregateClass.getName()));
 		}
 	}
