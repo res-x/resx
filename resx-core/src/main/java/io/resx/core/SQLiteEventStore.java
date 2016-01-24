@@ -22,6 +22,10 @@ import java.util.stream.Collectors;
 public class SQLiteEventStore extends AbstractEventStore {
 	private final JDBCClient client;
 
+	static {
+		System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
+	}
+
 	public SQLiteEventStore(final Vertx vertx, final String dbPath, final String aggregatePackage, final String eventPackage) {
 		super(vertx, eventPackage);
 		JsonObject config = new JsonObject()
