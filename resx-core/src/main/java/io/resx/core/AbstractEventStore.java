@@ -11,10 +11,7 @@ import lombok.extern.log4j.Log4j2;
 import org.reflections.Reflections;
 import rx.Observable;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 
 import static io.resx.core.Constants.ERROR_HEADER;
@@ -23,7 +20,7 @@ import static io.resx.core.Constants.HEADER_TRUE;
 @Log4j2
 abstract public class AbstractEventStore implements EventStore {
 	protected final EventBus eventBus;
-	protected final Map<String, Aggregate> aggregateCache = new HashMap<>();
+	protected final Map<String, Aggregate> aggregateCache = new LinkedHashMap<>();
 
 	public AbstractEventStore(final EventBus eventBus, final String evenPackage) {
 		this.eventBus = eventBus;
