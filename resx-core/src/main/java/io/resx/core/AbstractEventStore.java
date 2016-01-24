@@ -1,9 +1,6 @@
 package io.resx.core;
 
-import io.resx.core.event.DistributedEvent;
-import io.resx.core.event.FailedEvent;
-import io.resx.core.event.PersistableEvent;
-import io.resx.core.event.SourcedEvent;
+import io.resx.core.event.*;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import io.vertx.rxjava.core.MultiMap;
@@ -11,8 +8,10 @@ import io.vertx.rxjava.core.eventbus.EventBus;
 import io.vertx.rxjava.core.eventbus.Message;
 import io.vertx.rxjava.core.eventbus.MessageConsumer;
 import lombok.extern.log4j.Log4j2;
+import org.reflections.Reflections;
 import rx.Observable;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,8 +25,23 @@ abstract public class AbstractEventStore implements EventStore {
 	protected final EventBus eventBus;
 	protected final Map<String, Aggregate> aggregateCache = new HashMap<>();
 
-	public AbstractEventStore(final EventBus eventBus) {
+	public AbstractEventStore(final EventBus eventBus, final String evenPackage) {
 		this.eventBus = eventBus;
+		Arrays.asList(SourcedEvent.class, DistributedEvent.class)
+				.forEach(aClass1 -> new Reflections(evenPackage)
+						.getSubTypesOf(aClass1)
+						.forEach(aClass ->
+								((io.vertx.core.eventbus.EventBus) eventBus.getDelegate())
+										.registerDefaultCodec(aClass,
+												new DistributedEventMessageCodec<>(aClass))));
+	}
+
+	public void cacheAllAggregates(String aggregatePackage) {
+		new Reflections(aggregatePackage)
+				.getSubTypesOf(Aggregate.class)
+				.forEach(aClass -> loadAll(aClass, false)
+						.subscribe(observables -> observables
+								.forEach(Observable::subscribe)));
 	}
 
 	@Override
@@ -45,7 +59,7 @@ abstract public class AbstractEventStore implements EventStore {
 		return eventBus.sendObservable(address, Json.encode(message))
 				.flatMap(objectMessage -> {
 					final String messageBody = (String) objectMessage.body();
-					if(!hasSendError(objectMessage)) {
+					if (!hasSendError(objectMessage)) {
 						//noinspection unchecked
 						final R entity = clazz.equals(String.class)
 								? (R) messageBody
@@ -60,7 +74,7 @@ abstract public class AbstractEventStore implements EventStore {
 	public <T extends SourcedEvent> Observable<T> publishSourcedEvent(final String address, final T message, final Class<T> clazz) {
 		eventBus.publish(address, Json.encode(message));
 		final PersistableEvent<T> tPersistableEvent = new PersistableEvent<>(clazz, Json.encode(message));
-		if(aggregateCache.containsKey(message.getId())) {
+		if (aggregateCache.containsKey(message.getId())) {
 			final Aggregate aggregate = aggregateCache.get(message.getId());
 			aggregate.apply(message);
 		}
@@ -106,17 +120,16 @@ abstract public class AbstractEventStore implements EventStore {
 
 	@Override
 	public <T extends DistributedEvent> MessageConsumer<String> consumer(final Class<T> event, final Handler<Message<String>> handler) {
-		try
-		{
+		try {
 			return eventBus.consumer(event.newInstance().getAddress(), handler);
+		} catch (InstantiationException | IllegalAccessException ignored) {
 		}
-		catch (InstantiationException | IllegalAccessException ignored) { }
 		return null;
 	}
 
 	@Override
 	public <T extends Aggregate, R extends SourcedEvent> Observable<T> load(final String id, final Class<T> aggregateClass, final R event) {
-		if(aggregateCache.containsKey(id)) {
+		if (aggregateCache.containsKey(id)) {
 			final Aggregate aggregate = aggregateCache.get(id);
 			aggregate.apply(event);
 			//noinspection unchecked
@@ -147,6 +160,7 @@ abstract public class AbstractEventStore implements EventStore {
 				final SourcedEvent o = Json.decodeValue(event.getPayload(), clazz);
 				aggregate.apply(o);
 			} catch (final Exception ignored) {
+				log.warn("could not apply event {}", event.getClazz().getSimpleName());
 			}
 		};
 	}

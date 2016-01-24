@@ -55,4 +55,6 @@ public interface EventStore
 	<T extends PersistableEvent<? extends SourcedEvent>> Observable<T> insert(T event);
 
 	void cacheAggregate(Aggregate aggregate);
+
+	void cacheAllAggregates(String aggregatePackage);
 }

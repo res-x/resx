@@ -13,7 +13,6 @@ import lombok.extern.log4j.Log4j2;
 import org.apache.logging.log4j.util.Strings;
 import rx.Observable;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -23,8 +22,8 @@ import java.util.stream.Collectors;
 public class SQLiteEventStore extends AbstractEventStore {
 	private final JDBCClient client;
 
-	public SQLiteEventStore(final Vertx vertx, final EventBus eventBus, final String dbPath) {
-		super(eventBus);
+	public SQLiteEventStore(final Vertx vertx, final EventBus eventBus, final String dbPath, final String aggregatePackage, final String eventPackage) {
+		super(eventBus, eventPackage);
 		JsonObject config = new JsonObject()
 				.put("url", "jdbc:sqlite:" + dbPath)
 				.put("driver_class", "org.sqlite.JDBC");
@@ -39,6 +38,8 @@ public class SQLiteEventStore extends AbstractEventStore {
 								"   CLAZZ          TEXT    NOT NULL\n" +
 								");").subscribe())
 				).subscribe();
+
+		cacheAllAggregates(aggregatePackage);
 	}
 
 	private Observable<SQLConnection> getSqlConnectionObservable(final SQLConnection sqlConnection) {

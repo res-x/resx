@@ -15,8 +15,8 @@ public class InMemoryEventStore extends AbstractEventStore
 {
 	private final Map<String, List<PersistableEvent<? extends SourcedEvent>>> eventList = new HashMap<>();
 
-	public InMemoryEventStore(final EventBus eventBus) {
-		super(eventBus);
+	public InMemoryEventStore(final EventBus eventBus, final String aggregatePackage, final String eventPackage) {
+		super(eventBus, eventPackage);
 	}
 
 	@Override
