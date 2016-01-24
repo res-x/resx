@@ -3,6 +3,7 @@ package io.resx.core;
 import io.resx.core.event.*;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
+import io.vertx.core.logging.Logger;
 import io.vertx.rxjava.core.MultiMap;
 import io.vertx.rxjava.core.Vertx;
 import io.vertx.rxjava.core.eventbus.EventBus;
@@ -27,7 +28,7 @@ abstract public class AbstractEventStore implements EventStore {
 	public AbstractEventStore(final Vertx vertx, final String eventPackage) {
 		this.eventBus = vertx.eventBus();
 		this.vertx = vertx;
-		System.out.println("creating event message codecs ...");
+		log.info("creating event message codecs ...");
 		Arrays.asList(SourcedEvent.class, DistributedEvent.class)
 				.forEach(aClass1 -> new Reflections(eventPackage)
 						.getSubTypesOf(aClass1)
@@ -35,16 +36,16 @@ abstract public class AbstractEventStore implements EventStore {
 							((io.vertx.core.eventbus.EventBus) eventBus.getDelegate())
 									.registerDefaultCodec(aClass,
 											new DistributedEventMessageCodec<>(aClass));
-							System.out.println("... created message codec for " + aClass.getSimpleName());
+							log.info("... created message codec for " + aClass.getSimpleName());
 						}));
 	}
 
 	public void cacheAllAggregates(String aggregatePackage) {
-		System.out.println("caching aggregates ...");
+		log.info("caching aggregates ...");
 		new Reflections(aggregatePackage)
 				.getSubTypesOf(Aggregate.class)
 				.forEach(aClass -> loadAll(aClass, false)
-						.doOnUnsubscribe(() -> System.out.println("... cached all aggregates for " + aClass.getSimpleName()))
+						.doOnUnsubscribe(() -> log.info("... cached all aggregates for " + aClass.getSimpleName()))
 						.subscribe(observables -> observables
 								.forEach(Observable::subscribe)));
 	}

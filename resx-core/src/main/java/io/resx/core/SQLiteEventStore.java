@@ -31,11 +31,12 @@ public class SQLiteEventStore extends AbstractEventStore {
 		client = JDBCClient.createShared(vertx, config);
 		client.getConnectionObservable()
 				.flatMap(sqlConnection -> getSqlConnectionObservable(sqlConnection)
-						.doOnNext(sqlConnection1 -> sqlConnection1.executeObservable("CREATE TABLE IF NOT EXISTS EVENTS(\n" +
+						.doOnNext(sqlConnection1 -> sqlConnection1.executeObservable(
+								"CREATE TABLE IF NOT EXISTS EVENTS(\n" +
 								"   ID TEXT PRIMARY KEY     NOT NULL,\n" +
-								"   AGGREGATE_ID TEXT       NOT NULL,\n" +
-								"   PAYLOAD        TEXT    NOT NULL,\n" +
-								"   CLAZZ          TEXT    NOT NULL\n" +
+								"   AGGREGATE_ID    TEXT    NOT NULL,\n" +
+								"   PAYLOAD         TEXT    NOT NULL,\n" +
+								"   CLAZZ           TEXT    NOT NULL\n" +
 								");").subscribe())
 				).subscribe();
 
