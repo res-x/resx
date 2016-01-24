@@ -4,6 +4,7 @@ import io.resx.core.event.*;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import io.vertx.rxjava.core.MultiMap;
+import io.vertx.rxjava.core.Vertx;
 import io.vertx.rxjava.core.eventbus.EventBus;
 import io.vertx.rxjava.core.eventbus.Message;
 import io.vertx.rxjava.core.eventbus.MessageConsumer;
@@ -19,24 +20,31 @@ import static io.resx.core.Constants.HEADER_TRUE;
 
 @Log4j2
 abstract public class AbstractEventStore implements EventStore {
+	protected final Vertx vertx;
 	protected final EventBus eventBus;
 	protected final Map<String, Aggregate> aggregateCache = new LinkedHashMap<>();
 
-	public AbstractEventStore(final EventBus eventBus, final String evenPackage) {
-		this.eventBus = eventBus;
+	public AbstractEventStore(final Vertx vertx, final String eventPackage) {
+		this.eventBus = vertx.eventBus();
+		this.vertx = vertx;
+		System.out.println("creating event message codecs ...");
 		Arrays.asList(SourcedEvent.class, DistributedEvent.class)
-				.forEach(aClass1 -> new Reflections(evenPackage)
+				.forEach(aClass1 -> new Reflections(eventPackage)
 						.getSubTypesOf(aClass1)
-						.forEach(aClass ->
-								((io.vertx.core.eventbus.EventBus) eventBus.getDelegate())
-										.registerDefaultCodec(aClass,
-												new DistributedEventMessageCodec<>(aClass))));
+						.forEach(aClass -> {
+							((io.vertx.core.eventbus.EventBus) eventBus.getDelegate())
+									.registerDefaultCodec(aClass,
+											new DistributedEventMessageCodec<>(aClass));
+							System.out.println("... created message codec for " + aClass.getSimpleName());
+						}));
 	}
 
 	public void cacheAllAggregates(String aggregatePackage) {
+		System.out.println("caching aggregates ...");
 		new Reflections(aggregatePackage)
 				.getSubTypesOf(Aggregate.class)
 				.forEach(aClass -> loadAll(aClass, false)
+						.doOnUnsubscribe(() -> System.out.println("... cached all aggregates for " + aClass.getSimpleName()))
 						.subscribe(observables -> observables
 								.forEach(Observable::subscribe)));
 	}

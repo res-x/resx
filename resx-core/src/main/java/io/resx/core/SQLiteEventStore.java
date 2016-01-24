@@ -22,8 +22,8 @@ import java.util.stream.Collectors;
 public class SQLiteEventStore extends AbstractEventStore {
 	private final JDBCClient client;
 
-	public SQLiteEventStore(final Vertx vertx, final EventBus eventBus, final String dbPath, final String aggregatePackage, final String eventPackage) {
-		super(eventBus, eventPackage);
+	public SQLiteEventStore(final Vertx vertx, final String dbPath, final String aggregatePackage, final String eventPackage) {
+		super(vertx, eventPackage);
 		JsonObject config = new JsonObject()
 				.put("url", "jdbc:sqlite:" + dbPath)
 				.put("driver_class", "org.sqlite.JDBC");

@@ -18,8 +18,8 @@ public class MongoEventStore extends AbstractEventStore
 {
 	private final MongoClient mongoClient;
 
-	public MongoEventStore(final Vertx vertx, final EventBus eventBus, final JsonObject config, final String aggregatePackage, final String eventPackage) {
-		super(eventBus, eventPackage);
+	public MongoEventStore(final Vertx vertx, final JsonObject config, final String aggregatePackage, final String eventPackage) {
+		super(vertx, eventPackage);
 		mongoClient = MongoClient.createShared(vertx, config);
 	}
 

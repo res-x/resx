@@ -3,6 +3,7 @@ package io.resx.core;
 import io.resx.core.event.PersistableEvent;
 import io.resx.core.event.SourcedEvent;
 import io.vertx.core.json.JsonObject;
+import io.vertx.rxjava.core.Vertx;
 import io.vertx.rxjava.core.eventbus.EventBus;
 import rx.Observable;
 
@@ -15,8 +16,8 @@ public class InMemoryEventStore extends AbstractEventStore
 {
 	private final Map<String, List<PersistableEvent<? extends SourcedEvent>>> eventList = new HashMap<>();
 
-	public InMemoryEventStore(final EventBus eventBus, final String aggregatePackage, final String eventPackage) {
-		super(eventBus, eventPackage);
+	public InMemoryEventStore(final Vertx vertx, final String aggregatePackage, final String eventPackage) {
+		super(vertx, eventPackage);
 	}
 
 	@Override
